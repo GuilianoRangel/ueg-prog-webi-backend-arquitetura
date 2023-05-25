@@ -190,6 +190,11 @@
         <version>0.0.1-SNAPSHOT</version>
         <scope>compile</scope>
       </dependency>
+      <dependency>
+          <groupId>org.postgresql</groupId>
+          <artifactId>postgresql</artifactId>
+          <scope>runtime</scope>
+      </dependency>
     </dependencies>
     <build>
       <plugins>
