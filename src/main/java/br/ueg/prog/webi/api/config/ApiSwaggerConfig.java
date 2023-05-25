@@ -29,6 +29,7 @@ public class ApiSwaggerConfig {
 	public static final String SWAGGER_LICENSE_URL = "http://www.apache.org/licenses/LICENSE-2.0";
 
 	public static final String SWAGGER_LICENSE = "Apache License 2.0";
+	public static final String BEARER_AUTH = "bearerAuth";
 
 	@Value("${app.api.swagger.title}")
 	private String title;
@@ -46,6 +47,15 @@ public class ApiSwaggerConfig {
 	@Bean
 	public OpenAPI customOpenAPI(@Value("${springdoc.version}") String appVersion) {
 		return new OpenAPI()
+				.components(new Components().addSecuritySchemes(BEARER_AUTH,
+								new SecurityScheme()
+										.name(BEARER_AUTH)
+										.type(SecurityScheme.Type.HTTP)
+										.scheme("bearer")
+										.bearerFormat("JWT")
+										.in(SecurityScheme.In.HEADER)
+						)
+				)
 				.info(new Info()
 						.title(this.title)
 						.version(appVersion)
@@ -53,7 +63,8 @@ public class ApiSwaggerConfig {
 								.name(SWAGGER_LICENSE)
 								.url(SWAGGER_LICENSE_URL)
 						)
-				);
+				)
+				.security(Arrays.asList(new io.swagger.v3.oas.models.security.SecurityRequirement().addList(BEARER_AUTH)));
 	}
 
 }

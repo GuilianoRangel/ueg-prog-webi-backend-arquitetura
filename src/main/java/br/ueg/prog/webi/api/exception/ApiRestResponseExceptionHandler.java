@@ -7,7 +7,9 @@
  *
  */
 package br.ueg.prog.webi.api.exception;
+
 import br.ueg.prog.webi.api.util.Util;
+import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.beans.TypeMismatchException;
@@ -20,6 +22,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.lang.Nullable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -140,6 +143,39 @@ public abstract class ApiRestResponseExceptionHandler extends ResponseEntityExce
 			response.addAttribute(new FieldResponse(attribute, constraint.getMessage()));
 		});
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST.value()).body(response);
+	}
+
+
+	/**
+	 * Método handle responsável por tratar a exceção {@link AccessDeniedException}.
+	 *
+	 * @param e -
+	 * @return -
+	 */
+	@ExceptionHandler({ AccessDeniedException.class })
+	public ResponseEntity<MessageResponse> handleAccessDeniedException(final AccessDeniedException e) {
+		MessageResponse response = new MessageResponse();
+		response.setStatus(HttpStatus.FORBIDDEN.value());
+		response.setError(HttpStatus.FORBIDDEN.getReasonPhrase());
+		response.setMessage(e.getMessage());
+		logger.error(e.getMessage(), e);
+		return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).body(response);
+	}
+
+	/**
+	 * Método handle responsável por tratar a exceção {@link AccessDeniedException}.
+	 *
+	 * @param e -
+	 * @return -
+	 */
+	@ExceptionHandler({ TokenExpiredException.class })
+	public ResponseEntity<MessageResponse> handleAccessDeniedException(final TokenExpiredException e) {
+		MessageResponse response = new MessageResponse();
+		response.setStatus(HttpStatus.FORBIDDEN.value());
+		response.setError(HttpStatus.FORBIDDEN.getReasonPhrase());
+		response.setMessage(e.getMessage());
+		logger.error(e.getMessage(), e);
+		return ResponseEntity.status(HttpStatus.FORBIDDEN.value()).body(response);
 	}
 
 	/**
