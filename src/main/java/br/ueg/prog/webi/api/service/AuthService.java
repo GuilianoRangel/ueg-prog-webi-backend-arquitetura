@@ -125,6 +125,7 @@ public class AuthService {
 
 
         registerCredentialInSecurityContext(credencialDTO);
+        credencialDTO.setSenha(null);
 
         return credencialDTO;
     }

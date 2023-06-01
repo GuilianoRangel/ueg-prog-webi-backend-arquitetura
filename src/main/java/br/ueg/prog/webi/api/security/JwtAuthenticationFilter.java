@@ -40,14 +40,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	public static final String BEARER_PREFIX = "Bearer ";
 
 	private final AuthenticationProvider authenticationProvider;
+	private final String urlAuthController;
 
 	/**
 	 * Construtor da classe.
-	 * 
+	 *
 	 * @param authenticationProvider - provider de autenticação
+	 * @param urlAuthController
 	 */
-	public JwtAuthenticationFilter(AuthenticationProvider authenticationProvider) {
+	public JwtAuthenticationFilter(AuthenticationProvider authenticationProvider, String urlAuthController) {
 		this.authenticationProvider = authenticationProvider;
+		this.urlAuthController = urlAuthController;
 	}
 
 	/**
@@ -56,15 +59,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(final HttpServletRequest  servletRequest, final HttpServletResponse servletResponse,
 									FilterChain chain) throws ServletException, IOException {
+		if(!servletRequest.getRequestURI().contains(this.urlAuthController)) {
+			final String token = getAccessToken(servletRequest);
 
-		final String token = getAccessToken(servletRequest);
-
-		if (!Util.isEmpty(token) && isTokenBearer(servletRequest)) {
-			Credential credential = null;
-			credential = authenticationProvider.getAuthentication(token);
-			Authentication authentication = getAuthentication(credential);
-			SecurityContextHolder.getContext().setAuthentication(authentication);
-		}
+			if (!Util.isEmpty(token) && isTokenBearer(servletRequest)) {
+				Credential credential = null;
+				credential = authenticationProvider.getAuthentication(token);
+				Authentication authentication = getAuthentication(credential);
+				SecurityContextHolder.getContext().setAuthentication(authentication);
+			}
+		};
 		chain.doFilter(servletRequest, servletResponse);
 	}
 

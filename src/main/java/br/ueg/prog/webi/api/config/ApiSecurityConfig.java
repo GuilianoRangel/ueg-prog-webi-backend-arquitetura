@@ -11,15 +11,16 @@ import br.ueg.prog.webi.api.exception.FilterChainExceptionHandler;
 import br.ueg.prog.webi.api.security.AuthenticationProvider;
 import br.ueg.prog.webi.api.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
  * Classe de configuração referente a segurança da aplicação.
@@ -32,6 +33,9 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 @EnableMethodSecurity*/
 public abstract class ApiSecurityConfig {
 
+    @Value("${app.api.security.url-auth-controller:/api/v1/auth}")
+    private String urlAuthController;
+
 
     /**
      * Retorna a instância de {@link AuthenticationProvider} necessária na validação
@@ -39,20 +43,14 @@ public abstract class ApiSecurityConfig {
      *
      * @return
      */
-   @Autowired
+    @Autowired
     protected  LogoutService logoutHandler;
 
-   @Autowired
-   protected  AuthenticationProvider authenticationProvider;
-
-    /**
-     * para ser utilizado para o tratamento de execção padronizado da aplicação
-     * https://stackoverflow.com/a/55864206/21944037
-     */
     @Autowired
-    @Qualifier("handlerExceptionResolver")
-    private HandlerExceptionResolver resolver;
+    protected  AuthenticationProvider authenticationProvider;
 
+    @Autowired
+    private ApiWebConfig apiWebConfig;
     @Autowired
     private FilterChainExceptionHandler filterChainExceptionHandler;
 
@@ -63,7 +61,7 @@ public abstract class ApiSecurityConfig {
                 .disable()
                 .authorizeHttpRequests()
                 .requestMatchers(
-                        "/api/v1/auth/**",
+                        urlAuthController.concat("/**"),
                         "/v2/api-docs",
                         "/v3/api-docs",
                         "/v3/api-docs/**",
@@ -76,8 +74,6 @@ public abstract class ApiSecurityConfig {
                         "/swagger-ui.html"
                 )
                 .permitAll()
-
-
                 .anyRequest()
                 .authenticated()
                 .and()
@@ -90,6 +86,10 @@ public abstract class ApiSecurityConfig {
                 .logoutUrl("/api/v1/auth/logout")
                 .addLogoutHandler(logoutHandler)
                 .logoutSuccessHandler((request, response, authentication) -> SecurityContextHolder.clearContext())
+                .and()
+                .cors().configurationSource(request -> {
+                      return apiWebConfig.getCorsConfiguration();
+                })
         ;
         configureHttpSecurity(http);
 
@@ -111,7 +111,20 @@ public abstract class ApiSecurityConfig {
      */
 
     protected JwtAuthenticationFilter jwtAuthenticationFilter() throws Exception {
-        return new JwtAuthenticationFilter(authenticationProvider);
+        return new JwtAuthenticationFilter(authenticationProvider, urlAuthController);
+    }
+
+    /**
+     * para desabilitar a criação de usuário padrão do spring security
+     * https://stackoverflow.com/a/41856630/21944037 in comment
+     * @param authenticationConfiguration
+     * @return
+     * @throws Exception
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 }
 

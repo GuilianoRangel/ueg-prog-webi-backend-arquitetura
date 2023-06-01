@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @Tag(name = "Auth API")
-@RequestMapping("${app.api.base}/auth")
+@RequestMapping("${app.api.security.url-auth-controller:${app.api.base}/auth}")
 public class AuthController extends AbstractController {
 
 	@Autowired
