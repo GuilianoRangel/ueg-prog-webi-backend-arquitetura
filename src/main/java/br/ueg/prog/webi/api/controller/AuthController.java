@@ -163,7 +163,6 @@ public class AuthController extends AbstractController {
 								array = @ArraySchema(schema = @Schema(implementation = MessageResponse.class))))
 	})
 	@GetMapping(path = "/senha/solicitacao/{email}", produces = { MediaType.APPLICATION_JSON_VALUE })
-	//TODO verificar se pode ser removido
 	public ResponseEntity<?> recuperarSenha(
 			@Parameter(description = "EMail do Usuário", required = true) @PathVariable() final String email) {
 		CredencialDTO credential = userProviderService.getCredentialByEmail(email);

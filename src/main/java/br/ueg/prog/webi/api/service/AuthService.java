@@ -64,21 +64,7 @@ public class AuthService {
     }
 
     public static Boolean loginByPassword(CredencialDTO usuario, AuthDTO authDTO) {
-        if (!authDTO.getLogin().equals(usuario.getLogin())) {
-            return false;
-        }
-        // Tratamento de senha sem enconde (senha com menos de 21 caracteres
-        if (usuario.getSenha().length() <= 20) {
-            if (authDTO.getSenha().equals(usuario.getSenha())) {
-                return true;
-            }
-        } else {
-            BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-            if (bCryptPasswordEncoder.matches(authDTO.getSenha(), usuario.getSenha())) {
-                return true;
-            }
-        }
-        return false;
+        return UserPasswordService.loginByPassword(usuario, authDTO);
     }
 
     /**
@@ -276,7 +262,7 @@ public class AuthService {
      */
     private void validarUsuarioLogin(CredencialDTO usuario) {
         if (usuario == null) {
-            throw new BusinessException(ApiMessageCode.ERRO_USUARIO_NAO_ENCONTRADO);
+            throw new BusinessException(ApiMessageCode.ERRO_USUARIO_SENHA_NAO_CONFEREM);
         }
 
         registerCredentialInSecurityContext(usuario);

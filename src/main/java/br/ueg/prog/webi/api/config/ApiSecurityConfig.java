@@ -22,15 +22,16 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Classe de configuração referente a segurança da aplicação.
  *
  * @author UEG
  */
 
-/*@Configuration
-@EnableWebSecurity
-@EnableMethodSecurity*/
 public abstract class ApiSecurityConfig {
 
     @Value("${app.api.security.url-auth-controller:/api/v1/auth}")
@@ -56,22 +57,26 @@ public abstract class ApiSecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        List<String> freeAccessPaternsList = new ArrayList<>(
+                Arrays.asList(urlAuthController.concat("/**"),
+                "/v2/api-docs",
+                "/v3/api-docs",
+                "/v3/api-docs/**",
+                "/swagger-resources",
+                "/swagger-resources/**",
+                "/configuration/ui",
+                "/configuration/security",
+                "/swagger-ui/**",
+                "/webjars/**",
+                "/swagger-ui.html"));
+        freeAccessPaternsList.addAll(getCustomFreeAccessPaterns());
+        String[] freeAccessPaterns = freeAccessPaternsList.toArray(new String[0]);
         http
                 .csrf()
                 .disable()
                 .authorizeHttpRequests()
                 .requestMatchers(
-                        urlAuthController.concat("/**"),
-                        "/v2/api-docs",
-                        "/v3/api-docs",
-                        "/v3/api-docs/**",
-                        "/swagger-resources",
-                        "/swagger-resources/**",
-                        "/configuration/ui",
-                        "/configuration/security",
-                        "/swagger-ui/**",
-                        "/webjars/**",
-                        "/swagger-ui.html"
+                        freeAccessPaterns
                 )
                 .permitAll()
                 .anyRequest()
@@ -96,11 +101,15 @@ public abstract class ApiSecurityConfig {
         return http.build();
     }
 
+    protected List<String> getCustomFreeAccessPaterns() {
+        return Arrays.asList();
+    };
+
     /**
      * Método utilizado para realizar configuração de seguranças quando necessário
      * @param http - Referência do HttpSecurity para configurações se necessário
      */
-    protected abstract void configureHttpSecurity(HttpSecurity http);
+    protected abstract void configureHttpSecurity(HttpSecurity http) throws Exception;
 
 
     /**
