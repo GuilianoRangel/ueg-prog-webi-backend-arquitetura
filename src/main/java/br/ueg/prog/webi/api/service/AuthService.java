@@ -204,6 +204,7 @@ public class AuthService {
         credencialDTO.setEmail(resolve.getEmail());
         credencialDTO.setNome(resolve.getNome());
         credencialDTO.setRoles(roles);
+        credencialDTO.setSenha(null);
         return credencialDTO;
     }
 
