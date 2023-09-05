@@ -89,6 +89,7 @@ public class Reflexao {
         for (Field field : getEntidadeFields(entidadeClass)) {
             if(field.isAnnotationPresent(Id.class)){
                pkMethodGetFieldName = "get"+uCFirst(field.getName());
+               break;
             }
         }
 
@@ -101,14 +102,17 @@ public class Reflexao {
 
     private static void setSinglePkValue(IEntidade<?> entidade, Class<?> entidadeClass, Object pkValue) {
         String pkMethodGetFieldName = null ;
+        Field pkField= null;
         for (Field field : getEntidadeFields(entidadeClass)) {
             if(field.isAnnotationPresent(Id.class)){
                 pkMethodGetFieldName = "set"+uCFirst(field.getName());
+                pkField = field;
             }
         }
 
         try {
-            entidadeClass.getMethod(pkMethodGetFieldName, pkValue.getClass()).invoke(entidade, pkValue);
+            Method setPkMethod = entidadeClass.getMethod(pkMethodGetFieldName, pkField.getType());
+            setPkMethod.invoke(entidade, pkValue);
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }

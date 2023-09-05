@@ -5,5 +5,6 @@ public interface IEntidade<PK_TYPE> {
     String getTabelaNome();
     PK_TYPE getId();
     String getIdHash();
+    PK_TYPE getIdFromHash(String hash);
     void setId(PK_TYPE id);
 }
