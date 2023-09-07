@@ -6,6 +6,7 @@ import br.ueg.prog.webi.api.model.IEntidade;
 import br.ueg.prog.webi.api.model.annotation.PkComposite;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
@@ -99,6 +100,16 @@ public class Reflexao {
             throw new RuntimeException(e);
         }
     }
+    public static Boolean isEntidadeHavePkGenerated(IEntidade<?> entidade) {
+        validTableObject(entidade);
+        Class<?> entidadeClass = entidade.getClass();
+        for (Field field : getEntidadeFields(entidadeClass)) {
+            if(field.isAnnotationPresent(Id.class)){
+                return field.isAnnotationPresent(GeneratedValue.class);
+            }
+        }
+        return false;
+    }
 
     private static void setSinglePkValue(IEntidade<?> entidade, Class<?> entidadeClass, Object pkValue) {
         String pkMethodGetFieldName = null ;
@@ -149,6 +160,20 @@ public class Reflexao {
         try {
             if(type.isAnnotationPresent(PkComposite.class)){
                 aClass =  type.getConstructor().newInstance();
+            }
+
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
+                 InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+        return aClass;
+    }
+
+    public static <T> Object getNewEntidadeFromType(T type) {
+        Object aClass = null;
+        try {
+            if(IEntidade.class.isAssignableFrom((Class<?>)type)){
+                aClass =  ((Class<?>)type).getConstructor().newInstance();
             }
 
         } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
@@ -250,13 +275,14 @@ public class Reflexao {
             ObjectMapper objectMapper = new ObjectMapper();
             try {
                 pkString = objectMapper.writeValueAsString(pkObject);
-                pkString = Base64.getEncoder().encodeToString(pkString.getBytes());
+
             } catch (JsonProcessingException e) {
                 throw new DevelopmentException("Erro ao Serializar a PK:",e);
             }
         }else{
             pkString = pkObject.toString();
         }
+        pkString = Base64.getEncoder().encodeToString(pkString.getBytes());
         return pkString;
     }
 

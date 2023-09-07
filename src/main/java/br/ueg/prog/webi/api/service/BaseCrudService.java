@@ -3,6 +3,7 @@ package br.ueg.prog.webi.api.service;
 import br.ueg.prog.webi.api.exception.ApiMessageCode;
 import br.ueg.prog.webi.api.exception.BusinessException;
 import br.ueg.prog.webi.api.model.IEntidade;
+import br.ueg.prog.webi.api.util.Reflexao;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -22,6 +23,9 @@ public abstract class BaseCrudService<
 
     @Override
     public ENTIDADE incluir(ENTIDADE modelo) {
+        if(Reflexao.isEntidadeHavePkGenerated(modelo)) {
+            modelo.setId(null);
+        }
         this.validarCamposObrigatorios(modelo);
         this.validarDados(modelo);
         this.prepararParaIncluir(modelo);
