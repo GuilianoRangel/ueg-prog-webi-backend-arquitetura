@@ -40,7 +40,7 @@ public class CrudEntityIdHashController<
                             schema = @Schema(implementation = MessageResponse.class)))
     }
     )
-    public ResponseEntity<DTO> alterar(@RequestBody() DTO modeloDTO, @PathVariable(name = "id") String id
+    public ResponseEntity<DTO> alterarIdHash(@RequestBody() DTO modeloDTO, @PathVariable(name = "id") String id
     ){
         // TODO validar se a PK está preenchidia
         ENTIDADE pModelo = mapper.toModelo(modeloDTO);
@@ -60,7 +60,7 @@ public class CrudEntityIdHashController<
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = MessageResponse.class)))
     })
-    public ResponseEntity<DTO> remover(@PathVariable(name = "id") String id){
+    public ResponseEntity<DTO> removerIdHash(@PathVariable(name = "id") String id){
 
         ENTIDADE entidadeObject = getEntidadeObject();
         PK_TYPE pk = entidadeObject.getIdFromHash(id);
@@ -87,7 +87,7 @@ public class CrudEntityIdHashController<
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = MessageResponse.class)))
     })
-    public ResponseEntity<DTO> ObterPorId(@PathVariable(name = "id") String id){
+    public ResponseEntity<DTO> ObterPorIdHash(@PathVariable(name = "id") String id){
         ENTIDADE entidadeObject = getEntidadeObject();
         PK_TYPE pk = entidadeObject.getIdFromHash(id);
         ENTIDADE aluno = this.service.obterPeloId(pk);

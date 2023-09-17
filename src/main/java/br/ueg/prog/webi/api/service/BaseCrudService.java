@@ -68,6 +68,18 @@ public abstract class BaseCrudService<
         return entidade;
     }
 
+    /**
+     * retorna a entidade se existir ou null
+     * @param id
+     * @return
+     */
+    protected ENTIDADE recuperarEntidade(PK_TYPE id) {
+        ENTIDADE entidade = repository
+                .findById(id)
+                .orElse(null);
+        return entidade;
+    }
+
     @Override
     public ENTIDADE excluir(PK_TYPE id) {
         ENTIDADE entidadeExcluir = this.recuperarEntidadeOuGeraErro(id);
