@@ -6,7 +6,9 @@ import br.ueg.prog.webi.api.model.IEntidade;
 import br.ueg.prog.webi.api.util.Reflexao;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.CrudRepository;
 
 import java.util.List;
@@ -14,12 +16,15 @@ import java.util.List;
 public abstract class BaseCrudService<
         ENTIDADE extends IEntidade<PK_TYPE>,
         PK_TYPE,
-        REPOSITORY extends CrudRepository<ENTIDADE, PK_TYPE>
+        REPOSITORY extends JpaRepository<ENTIDADE, PK_TYPE>
         > implements CrudService<ENTIDADE, PK_TYPE>{
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     protected REPOSITORY repository;
+
+    @Autowired
+    protected ApplicationContext context;
 
     @Override
     public ENTIDADE incluir(ENTIDADE modelo) {
@@ -37,7 +42,7 @@ public abstract class BaseCrudService<
 
     private ENTIDADE gravarDados(ENTIDADE entidade) {
         try {
-            ENTIDADE save = repository.save(entidade);
+            ENTIDADE save = repository.saveAndFlush(entidade);
             return save;
         }catch (ConstraintViolationException | DataIntegrityViolationException cev){
             throw new BusinessException(ApiMessageCode.ERRO_BD,cev.getMessage());

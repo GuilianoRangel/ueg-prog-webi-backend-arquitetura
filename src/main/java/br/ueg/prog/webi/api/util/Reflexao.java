@@ -6,22 +6,21 @@ import br.ueg.prog.webi.api.model.IEntidade;
 import br.ueg.prog.webi.api.model.annotation.PkComposite;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import org.apache.logging.log4j.util.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class Reflexao {
+    private static final Logger log = LoggerFactory.getLogger(Reflexao.class);
     public static String getJPATableName(IEntidade<?> table){
         validTableObject(table);
         Class<?> cls = table.getClass();
@@ -98,6 +97,28 @@ public class Reflexao {
             return (T) entidadeClass.getMethod(pkMethodGetFieldName).invoke(entidade);
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static Object getFieldValue(IEntidade<?> entidade, String fieldName) {
+        try {
+            Class<? extends IEntidade> entidadeClass = entidade.getClass();
+            Field field = getEntidadeField(entidadeClass, fieldName);
+            String methodGetFieldName = "get"+uCFirst(field.getName());
+            return entidadeClass.getMethod(methodGetFieldName).invoke(entidade);
+        } catch (NoSuchFieldException | IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public static void setFieldValue(IEntidade<?> entidade, String fieldName, Object value)  {
+        try {
+            Class<? extends IEntidade> entidadeClass = entidade.getClass();
+            Field field = getEntidadeField(entidadeClass, fieldName);
+            String methodGetFieldName = "set"+uCFirst(field.getName());
+            entidadeClass.getMethod(methodGetFieldName, field.getType()).invoke(entidade, value);
+        } catch (NoSuchFieldException | IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
+            throw new RuntimeException(ex);
         }
     }
     public static Boolean isEntidadeHavePkGenerated(IEntidade<?> entidade) {
@@ -297,5 +318,40 @@ public class Reflexao {
             throw new DevelopmentException("Erro ao Serializar a PK:",e);
         }
         return pkObject;
+    }
+
+    public static Map<Field,IEntidade<?>> getForeignEntity(IEntidade entidade){
+        Field[] entidadeFields = getEntidadeFields(entidade.getClass());
+        Map<Field,IEntidade<?>> entidadeForeign = new HashMap<>();
+        for (Field field: entidadeFields){
+            if( IEntidade.class.isAssignableFrom(field.getType())){
+                IEntidade<?> fieldValue = (IEntidade<?>) getFieldValue(entidade, field.getName());
+                entidadeForeign.put(field,fieldValue);
+            }
+        }
+        return entidadeForeign;
+    }
+
+    public static Map<String, IEntidade<?>> setForeignEntity(IEntidade entidade, ApplicationContext context){
+        Map<Field, IEntidade<?>> foreignEntity = Reflexao.getForeignEntity(entidade);
+        Map<String, IEntidade<?>> list = new HashMap<>();
+        for ( var entityField : foreignEntity.keySet()) {
+            IEntidade<?> iEntidade = foreignEntity.get(entityField);
+            if(Objects.isNull(iEntidade)){ continue; }
+            String entityName = iEntidade.getClass().getSimpleName();
+            entityName=entityName.substring(0,1).toLowerCase().concat(entityName.substring(1));
+            String repositoryName = entityName.concat("Repository");
+            JpaRepository bean = (JpaRepository) context.getBean(repositoryName);
+            Object jpaTablePkObject = Reflexao.getJPATablePkObject(iEntidade.getClass(), iEntidade);
+            try {
+                IEntidade<?> referenceById = (IEntidade<?>) bean.getReferenceById(jpaTablePkObject);
+                referenceById.getId();
+                Reflexao.setFieldValue(entidade,entityField.getName(),referenceById);
+                list.put(entityField.getName(), referenceById);
+            } catch (EntityNotFoundException e){
+                log.info("Entidade: "+entityName+" com ID: "+jpaTablePkObject+" não encontrado");
+            }
+        }
+        return list;
     }
 }
