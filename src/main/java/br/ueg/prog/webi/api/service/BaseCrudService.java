@@ -14,9 +14,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.lang.reflect.ParameterizedType;
+import java.util.*;
 
 public abstract class BaseCrudService<
         ENTIDADE extends IEntidade<PK_TYPE>,
@@ -39,12 +38,37 @@ public abstract class BaseCrudService<
         }else{
             modelo.setNew();
         }
+        this.setListReferences(modelo);
         this.setAndSaveNewForeignEntitiesMaps(modelo);
         this.validarCamposObrigatorios(modelo);
         this.validarDados(modelo);
         this.prepararParaIncluir(modelo);
         ENTIDADE entidadeIncluido = this.gravarDados(modelo);
         return entidadeIncluido;
+    }
+
+    private void setListReferences(ENTIDADE modelo) {
+        for (Field entidadeField : Reflexao.getEntidadeFields(modelo.getClass())) {
+            if(
+                 Collection.class.isAssignableFrom(entidadeField.getType())
+            ){
+                ParameterizedType listType = (ParameterizedType) entidadeField.getGenericType();
+                Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+                if(IEntidade.class.isAssignableFrom(listClass)) {
+                    var list = (Collection<IEntidade<?>>) Reflexao.getFieldValue(modelo, entidadeField.getName());
+                    for (IEntidade<?> iEntidade : list) {
+                        Field[] entidadeFields = Reflexao.getEntidadeFields(iEntidade.getClass());
+                        for (Field fieldAux : entidadeFields) {
+                            if(fieldAux.getType().isAssignableFrom(modelo.getClass())){
+                                Reflexao.setFieldValue(iEntidade, fieldAux.getName(), modelo);
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
     }
 
     private IEntidade<?> getEntityFromOld(Map<Field, IEntidade<?>> maps, String fieldName){
@@ -95,6 +119,7 @@ public abstract class BaseCrudService<
     @Override
     public ENTIDADE alterar(ENTIDADE entidade, PK_TYPE id) {
 
+        this.setListReferences(entidade);
         this.setAndSaveNewForeignEntitiesMaps(entidade);
         this.validarCamposObrigatorios(entidade);
         this.validarDados(entidade);
