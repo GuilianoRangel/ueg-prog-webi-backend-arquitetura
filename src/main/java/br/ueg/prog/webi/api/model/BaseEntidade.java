@@ -1,13 +1,20 @@
 package br.ueg.prog.webi.api.model;
 
 import br.ueg.prog.webi.api.util.Reflexao;
+import jakarta.persistence.Transient;
 
 import java.lang.reflect.ParameterizedType;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public abstract class BaseEntidade<PK_TYPE> implements IEntidade<PK_TYPE>{
+
     protected PK_TYPE compositePkEntidadeObject;
     private Class<PK_TYPE> persistentClass;
+
+    @Transient
+    protected Map<String, IEntidade<?>> foreingEntitiesMaps = new HashMap<>();
 
     public BaseEntidade() {
     }
@@ -51,5 +58,24 @@ public abstract class BaseEntidade<PK_TYPE> implements IEntidade<PK_TYPE>{
 
     public void setCompositePkEntidadeObject(PK_TYPE compositePkEntidadeObject) {
         this.compositePkEntidadeObject = compositePkEntidadeObject;
+    }
+
+    public void setForeignEntitiesMaps(Map<String, IEntidade<?>> foreignEntities){
+        this.foreingEntitiesMaps = foreignEntities;
+    }
+
+    public Map<String, IEntidade<?>> getForeignEntitiesMaps(){
+        return this.foreingEntitiesMaps;
+    }
+
+
+    @Transient
+    private boolean isNew = false;
+    public void setNew(){
+        this.isNew = true;
+    }
+    @Override
+    public boolean isNew() {
+        return this.isNew;
     }
 }

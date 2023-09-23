@@ -1,13 +1,15 @@
 package br.ueg.prog.webi.api.util;
 
 import br.ueg.prog.webi.api.exception.DevelopmentException;
-import br.ueg.prog.webi.api.model.BaseEntidade;
+import br.ueg.prog.webi.api.mapper.BaseMapper;
 import br.ueg.prog.webi.api.model.IEntidade;
 import br.ueg.prog.webi.api.model.annotation.PkComposite;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
 import org.apache.logging.log4j.util.Strings;
+import org.hibernate.proxy.HibernateProxy;
+import org.hibernate.proxy.LazyInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -332,26 +334,105 @@ public class Reflexao {
         return entidadeForeign;
     }
 
-    public static Map<String, IEntidade<?>> setForeignEntity(IEntidade entidade, ApplicationContext context){
+    public static Map<String, IEntidade<?>> setForeignEntitiesMaps(IEntidade entidade, ApplicationContext context){
         Map<Field, IEntidade<?>> foreignEntity = Reflexao.getForeignEntity(entidade);
         Map<String, IEntidade<?>> list = new HashMap<>();
         for ( var entityField : foreignEntity.keySet()) {
             IEntidade<?> iEntidade = foreignEntity.get(entityField);
-            if(Objects.isNull(iEntidade)){ continue; }
-            String entityName = iEntidade.getClass().getSimpleName();
-            entityName=entityName.substring(0,1).toLowerCase().concat(entityName.substring(1));
-            String repositoryName = entityName.concat("Repository");
-            JpaRepository bean = (JpaRepository) context.getBean(repositoryName);
+            if(Objects.isNull(iEntidade)){
+                continue;
+            }
+            JpaRepository entityRepository = getEntityRepository(context, iEntidade);
             Object jpaTablePkObject = Reflexao.getJPATablePkObject(iEntidade.getClass(), iEntidade);
             try {
-                IEntidade<?> referenceById = (IEntidade<?>) bean.getReferenceById(jpaTablePkObject);
+                IEntidade<?> referenceById = (IEntidade<?>) entityRepository.getReferenceById(jpaTablePkObject);
                 referenceById.getId();
                 Reflexao.setFieldValue(entidade,entityField.getName(),referenceById);
                 list.put(entityField.getName(), referenceById);
             } catch (EntityNotFoundException e){
-                log.info("Entidade: "+entityName+" com ID: "+jpaTablePkObject+" não encontrado");
+                log.info("Entidade: "+iEntidade.getClass().getSimpleName()+" com ID: "+jpaTablePkObject+" não encontrado");
             }
         }
         return list;
+    }
+
+    private static JpaRepository getEntityRepository(ApplicationContext context, IEntidade<?> iEntidade) {
+        String entityName = iEntidade.getClass().getSimpleName();
+        entityName=entityName.substring(0,1).toLowerCase().concat(entityName.substring(1));
+        String repositoryName = entityName.concat("Repository");
+        JpaRepository entityRepository = (JpaRepository) context.getBean(repositoryName);
+        return entityRepository;
+    }
+
+
+    private static BaseMapper<IEntidade<?>, Object> getEntityMapper(ApplicationContext context, IEntidade<?> iEntidade) {
+        Class<?> aClass = getClassForHibernateObject(iEntidade);
+        String entityName = aClass.getSimpleName();
+        entityName=entityName.substring(0,1).toLowerCase().concat(entityName.substring(1));
+        String repositoryName = entityName.concat("MapperImpl");
+        return (BaseMapper<IEntidade<?>, Object>) context.getBean(repositoryName);
+    }
+
+    public static <T extends IEntidade<?>> T saveNewForeignEntity(ApplicationContext context,T newForeign) {
+        newForeign.setNew();;
+        return (T) getEntityRepository(context,newForeign).saveAndFlush(newForeign);
+    }
+
+    /**
+     * Método utilizado opara atualizar os dados do parameetro oldForeign na iEntidade,
+     * Não atualiza campos do tipo lista.
+     * Função recursiva, onde encontra uma entidade chama o próprio método para fazer atualilzação interna
+     * @param context
+     * @param oldForeign
+     * @param iEntidade
+     * @param notSetPkValue
+     */
+    public static void updateModel(ApplicationContext context, IEntidade<?> oldForeign, IEntidade<?> iEntidade, boolean notSetPkValue) {
+        if(oldForeign == iEntidade) {
+            return;
+        }
+        if(notSetPkValue) {
+            oldForeign.setId(null);
+        }
+        var entidadeOldFields = getForeignEntity(oldForeign);
+        for (Field entidadeOldField : entidadeOldFields.keySet()) {
+            IEntidade<?> fieldOldValue = (IEntidade<?>) getFieldValue(oldForeign, entidadeOldField.getName());
+            if(Objects.nonNull(fieldOldValue)) {
+                IEntidade<?> fieldValue = (IEntidade<?>) getFieldValue(iEntidade, entidadeOldField.getName());
+                updateModel(context, fieldOldValue, fieldValue, true);
+                fieldOldValue.setId(null);
+                setFieldValue(oldForeign, entidadeOldField.getName(), null);
+            }
+        }
+        setListFieldsNull(oldForeign);
+
+        getEntityMapper(context,iEntidade).updateModel(oldForeign, iEntidade);
+    }
+
+    private static void setListFieldsNull(IEntidade<?> oldForeign) {
+        for (Field entidadeField : getEntidadeFields(oldForeign.getClass())) {
+            if(
+                    List.class.isAssignableFrom(entidadeField.getType()) ||
+                    Set.class.isAssignableFrom(entidadeField.getType())
+            ){
+                setFieldValue(oldForeign, entidadeField.getName(), null);
+            }
+        }
+
+    }
+
+    public static IEntidade<?> getEntityFromField(ApplicationContext context, IEntidade<?> iEntidade) {
+        JpaRepository entityRepository = getEntityRepository(context, iEntidade);
+        return (IEntidade<?>) entityRepository.getReferenceById(iEntidade.getId());
+    }
+
+    public static Class<?> getClassForHibernateObject(Object object) {
+        if (object instanceof HibernateProxy) {
+            LazyInitializer lazyInitializer =
+                    ((HibernateProxy) object).getHibernateLazyInitializer();
+            return lazyInitializer.getPersistentClass();
+        } else {
+            return object.getClass();
+        }
     }
 }
