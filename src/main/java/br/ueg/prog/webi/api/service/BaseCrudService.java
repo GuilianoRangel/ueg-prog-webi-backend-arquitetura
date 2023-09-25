@@ -97,6 +97,7 @@ public abstract class BaseCrudService<
                 }
                 //pessoaMapper.updateModel(oldForeign, funcionario.getPessoa());
             }
+            setAndSaveNewForeignEntitiesMaps((ENTIDADE) iEntidade);
         }
         modelo.setForeignEntitiesMaps(foreignEntity);
     }
