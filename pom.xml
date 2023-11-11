@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>br.ueg.prog.webi</groupId>
-	<artifactId>aquitetura</artifactId>
+	<artifactId>arquitetura</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>Arquitetura</name>

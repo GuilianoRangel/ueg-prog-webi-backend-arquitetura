@@ -24,10 +24,10 @@ public @Data class AuthDTO implements Serializable {
 
 	private static final long serialVersionUID = 5374096682432769206L;
 
-	@Schema(description = "Login do Usuário", required = true)
+	@Schema(description = "Login do Usuário", required = true,example = "admin")
 	private String login;
 
-	@Schema(description = "Senha do Usuário", required = true)
+	@Schema(description = "Senha do Usuário", required = true, example = "admin")
 	private String senha;
 
 }

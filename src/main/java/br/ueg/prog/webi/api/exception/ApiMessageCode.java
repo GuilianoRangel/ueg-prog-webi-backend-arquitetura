@@ -1,5 +1,8 @@
 package br.ueg.prog.webi.api.exception;
 
+import lombok.Getter;
+
+@Getter
 public enum ApiMessageCode implements MessageCode {
 
 
@@ -13,7 +16,12 @@ public enum ApiMessageCode implements MessageCode {
     ERRO_USUARIO_SENHA_NAO_CONFEREM("ME007", 400),
     ERRO_USUARIO_INATIVO("ME008",400),
 
-    MSG_OPERACAO_REALIZADA_SUCESSO("MSG-000", 200);
+    MSG_OPERACAO_REALIZADA_SUCESSO("MSG-000", 200),
+
+    ERROR_SEARCH_PARAMETERS_NOT_DEFINED("ME009", 400),
+
+    SEARCH_FIELDS_RESULT_NONE("ME010", 404)
+    ;
     private final String code;
 
     private final Integer status;
@@ -24,23 +32,9 @@ public enum ApiMessageCode implements MessageCode {
      * @param code -
      * @param status -
      */
-    private ApiMessageCode(final String code, final Integer status) {
+    ApiMessageCode(final String code, final Integer status) {
         this.code = code;
         this.status = status;
-    }
-
-    /**
-     * @return the code
-     */
-    public String getCode() {
-        return code;
-    }
-
-    /**
-     * @return the status
-     */
-    public Integer getStatus() {
-        return status;
     }
 
     /**

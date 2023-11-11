@@ -4,12 +4,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.ElementType.*;
 
-/**
- * Anotação para ser adicionada em classes de PK composta para reflexão idenificar.
- */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(TYPE)
-public @interface PkComposite {
+@Target(FIELD)
+public @interface Searchable {
+    String label() default "";
+    boolean listEntityValues() default false;
 }

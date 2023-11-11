@@ -1,10 +1,13 @@
 package br.ueg.prog.webi.api.controller;
 
+import br.ueg.prog.webi.api.dto.SearchField;
+import br.ueg.prog.webi.api.dto.SearchFieldValue;
+import br.ueg.prog.webi.api.exception.ApiMessageCode;
+import br.ueg.prog.webi.api.exception.BusinessException;
 import br.ueg.prog.webi.api.exception.MessageResponse;
 import br.ueg.prog.webi.api.mapper.BaseMapper;
 import br.ueg.prog.webi.api.model.IEntidade;
 import br.ueg.prog.webi.api.service.CrudService;
-import br.ueg.prog.webi.api.util.Reflexao;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -124,9 +127,49 @@ public abstract class CrudController<
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = MessageResponse.class)))
     })
-    public ResponseEntity<DTO> ObterPorId(@PathVariable(name = "id") PK_TYPE id){
+    public ResponseEntity<DTO> obterPorId(@PathVariable(name = "id") PK_TYPE id){
         ENTIDADE aluno = this.service.obterPeloId(id);
         return ResponseEntity.ok(this.mapper.toDTO(aluno));
+    }
+
+    @GetMapping(path = "/search-fields")
+    @Operation(description = "Listagem dos campos de busca", responses = {
+            @ApiResponse(responseCode = "200", description = "Listagem geral",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema(schema = @Schema(implementation = SearchField.class)))),
+            @ApiResponse(responseCode = "400", description = "Modelo não parametrizado para pesquisa",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class)))
+    })
+    public ResponseEntity<List<SearchField>> searchFieldsList(){
+        List<SearchField> listSearchFields = service.listSearchFields();
+        if(listSearchFields.isEmpty()){
+            throw new BusinessException(ApiMessageCode.ERROR_SEARCH_PARAMETERS_NOT_DEFINED);
+        }
+        return ResponseEntity.ok(listSearchFields);
+    }
+
+    @PostMapping(path = "/search-fields")
+    @Operation(description = "Realiza a busca pelos valores dos campos informados", responses = {
+            @ApiResponse(responseCode = "200", description = "Listagem do resultado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema())),
+            @ApiResponse(responseCode = "400", description = "falha ao realizar a busca",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class)))
+    })
+    public ResponseEntity<List<DTO>> searchFieldsAction(@RequestBody List<SearchFieldValue> searchFieldValues){
+        List<ENTIDADE> listSearchFields = service.searchFieldValues(searchFieldValues);
+        if(listSearchFields.isEmpty()){
+            throw new BusinessException(ApiMessageCode.SEARCH_FIELDS_RESULT_NONE);
+        }
+        return ResponseEntity.ok(mapper.toDTO(listSearchFields));
     }
 
 }

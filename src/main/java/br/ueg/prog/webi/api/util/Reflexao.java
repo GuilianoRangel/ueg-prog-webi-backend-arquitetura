@@ -6,7 +6,10 @@ import br.ueg.prog.webi.api.model.IEntidade;
 import br.ueg.prog.webi.api.model.annotation.PkComposite;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.*;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import org.apache.logging.log4j.util.Strings;
 import org.hibernate.proxy.HibernateProxy;
 import org.hibernate.proxy.LazyInitializer;
@@ -15,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -72,7 +74,7 @@ public class Reflexao {
         if(((Class<?>)type).isAnnotationPresent(PkComposite.class)){
             return (T) getCompositoPkValue((Class<?>)type, entidade, entidadeClass);
         } else {
-            return (T) getSinglePkValue(type, entidade, entidadeClass);
+            return getSinglePkValue(type, entidade, entidadeClass);
         }
     }
 
@@ -206,7 +208,7 @@ public class Reflexao {
         return aClass;
     }
 
-    public static <T> T getCompositePkObjectFromEntidade(T type, IEntidade entidade) {
+    public static <T> T getCompositePkObjectFromEntidade(T type, IEntidade<?> entidade) {
         T pkObject = getCurrentCompositePkObject(type, entidade);
         if(Objects.isNull(pkObject)){
             pkObject = (T) getNewObjectFromType(type.getClass());
@@ -217,8 +219,8 @@ public class Reflexao {
     /**
      * Recebe uma entidade como parametro e recupera um objeto com o valor da PK
      * não cria o objeto apenas recupera caso ele exista
-     * @param entidade
-     * @return
+     * @param entidade - entidade
+     * @return - objeto de pk composto
      */
     private static <T> T getCurrentCompositePkObject(T type, IEntidade entidade) {
         T pkObject;
@@ -293,7 +295,7 @@ public class Reflexao {
     public static <T> String getJPATablePkHash(T type, IEntidade<?> entidade) {
         validTableObject(entidade);
         T pkObject = getJPATablePkObject(type, entidade);
-        String pkString = null;
+        String pkString ;
         if(((Class<?>)type).isAnnotationPresent(PkComposite.class)){
             ObjectMapper objectMapper = new ObjectMapper();
             try {
@@ -310,19 +312,17 @@ public class Reflexao {
     }
 
     public static <T, TCLASS extends Class<?>> T getJPATablePkObjectFromHash(TCLASS typeClass, T type, String pkHash) {
-        T pkObject = null;
+        T pkObject;
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             pkObject = (T) objectMapper.readValue(new String(Base64.getDecoder().decode(pkHash.getBytes())), (Class<?>)typeClass);
         } catch (JsonProcessingException e) {
             throw new DevelopmentException("Erro ao Serializar a PK:",e);
-        } catch (IOException e) {
-            throw new DevelopmentException("Erro ao Serializar a PK:",e);
         }
         return pkObject;
     }
 
-    public static Map<Field,IEntidade<?>> getForeignEntity(IEntidade entidade){
+    public static Map<Field,IEntidade<?>> getForeignEntity(IEntidade<?> entidade){
         Field[] entidadeFields = getEntidadeFields(entidade.getClass());
         Map<Field,IEntidade<?>> entidadeForeign = new HashMap<>();
         for (Field field: entidadeFields){
@@ -334,7 +334,7 @@ public class Reflexao {
         return entidadeForeign;
     }
 
-    public static Map<String, IEntidade<?>> setForeignEntitiesMaps(IEntidade entidade, ApplicationContext context){
+    public static Map<String, IEntidade<?>> setForeignEntitiesMaps(IEntidade<?> entidade, ApplicationContext context){
         Map<Field, IEntidade<?>> foreignEntity = Reflexao.getForeignEntity(entidade);
         Map<String, IEntidade<?>> list = new HashMap<>();
         for ( var entityField : foreignEntity.keySet()) {
@@ -356,14 +356,17 @@ public class Reflexao {
         return list;
     }
 
-    private static JpaRepository getEntityRepository(ApplicationContext context, IEntidade<?> iEntidade) {
-        String entityName = iEntidade.getClass().getSimpleName();
+    public static JpaRepository getEntityRepository(ApplicationContext context, IEntidade<?> iEntidade) {
+        return getEntityRepository(context, iEntidade.getClass());
+    }
+
+    public static JpaRepository getEntityRepository(ApplicationContext context, Class<?> iEntidade) {
+        String entityName = iEntidade.getSimpleName();
         entityName=entityName.substring(0,1).toLowerCase().concat(entityName.substring(1));
         String repositoryName = entityName.concat("Repository");
         JpaRepository entityRepository = (JpaRepository) context.getBean(repositoryName);
         return entityRepository;
     }
-
 
     private static BaseMapper<IEntidade<?>, Object> getEntityMapper(ApplicationContext context, IEntidade<?> iEntidade) {
         Class<?> aClass = getClassForHibernateObject(iEntidade);
@@ -374,7 +377,7 @@ public class Reflexao {
     }
 
     public static <T extends IEntidade<?>> T saveNewForeignEntity(ApplicationContext context,T newForeign) {
-        newForeign.setNew();;
+        newForeign.setNew();
         return (T) getEntityRepository(context,newForeign).saveAndFlush(newForeign);
     }
 
@@ -382,10 +385,10 @@ public class Reflexao {
      * Método utilizado opara atualizar os dados do parameetro oldForeign na iEntidade,
      * Não atualiza campos do tipo lista.
      * Função recursiva, onde encontra uma entidade chama o próprio método para fazer atualilzação interna
-     * @param context
-     * @param oldForeign
-     * @param iEntidade
-     * @param notSetPkValue
+     * @param context - contexto da aplicação
+     * @param oldForeign - objeto anterior a atualização
+     * @param iEntidade - objeto a atulizar
+     * @param notSetPkValue - indica que a PK não deve ser setada
      */
     public static void updateModel(ApplicationContext context, IEntidade<?> oldForeign, IEntidade<?> iEntidade, boolean notSetPkValue) {
         if(oldForeign == iEntidade) {
