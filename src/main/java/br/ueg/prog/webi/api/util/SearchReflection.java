@@ -10,8 +10,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class SearchReflection {
     /**
@@ -31,11 +33,22 @@ public class SearchReflection {
                     searchFieldList.addAll(searchFieldList1);
                 }else if(IEntidade.class.isAssignableFrom(entityField.getType()) && searchable.listEntityValues()){
                     JpaRepository entityRepository = Reflexao.getEntityRepository(context, entityField.getType());
-                    List<ISearchFieldData<?>> entityListAll = entityRepository.findAll();
+
+                    List<ISearchFieldData<?>> entityListAll = new ArrayList<>();
                     SearchField searchField = getSimpleSearchField(entityField, searchable);
+                    for (Object enumConstant : entityRepository.findAll()) {
+                        ISearchFieldData<?> value = (ISearchFieldData<?>) enumConstant;
+                        entityListAll.add(new SearchFieldData(value));
+                    }
                     searchField.setValueList(entityListAll);
                     searchFieldList.add(searchField);
-                }else {
+                }else if(Set.class.isAssignableFrom(entityField.getType())){
+                    ParameterizedType stringListType = (ParameterizedType) entityField.getGenericType();
+                    Class<?> entityFieldListType = (Class<?>) stringListType.getActualTypeArguments()[0];
+                    List<SearchField> searchFieldList1 = getEntitySearchFields(context, entityField.getName(), entityFieldListType, searchable);
+                    searchFieldList.addAll(searchFieldList1);
+
+                } else {
                     SearchField searchField = getSimpleSearchField(entityField, searchable);
                     searchFieldList.add(searchField);
                 }
@@ -46,14 +59,21 @@ public class SearchReflection {
 
     private static List<SearchField> getEntitySearchFields(ApplicationContext context, Field entityField, Searchable searchable) {
         //TODO tratar nível
+        return getEntitySearchFields(context, entityField.getName(), entityField.getType(), searchable);
+    }
+
+
+
+    private static List<SearchField> getEntitySearchFields(ApplicationContext context, String fieldName, Class<?> fieldType, Searchable searchable) {
+        //TODO tratar nível
         String fieldLabel = searchable.label();
         if(Strings.isEmpty(fieldLabel)){
-            fieldLabel = Reflexao.uCFirst(entityField.getName());
+            fieldLabel = Reflexao.uCFirst(fieldName);
         }
-        List<SearchField> searchFieldList1 = getSearchFieldList(context, entityField.getType());
+        List<SearchField> searchFieldList1 = getSearchFieldList(context, fieldType);
         String finalFieldLabel = fieldLabel;
         searchFieldList1.forEach(searchField -> {
-            searchField.setName(entityField.getName()+"."+ searchField.getName());
+            searchField.setName(fieldName +"."+ searchField.getName());
             searchField.setLabel(searchField.getLabel()+ " de "+finalFieldLabel);
         });
         return searchFieldList1;
