@@ -339,7 +339,7 @@ public class Reflexao {
         Map<String, IEntidade<?>> list = new HashMap<>();
         for ( var entityField : foreignEntity.keySet()) {
             IEntidade<?> iEntidade = foreignEntity.get(entityField);
-            if(Objects.isNull(iEntidade)){
+            if(Objects.isNull(iEntidade) || iEntidade instanceof HibernateProxy){
                 continue;
             }
             JpaRepository entityRepository = getEntityRepository(context, iEntidade);
