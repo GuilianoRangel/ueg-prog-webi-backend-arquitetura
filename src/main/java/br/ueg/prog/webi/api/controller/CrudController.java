@@ -14,11 +14,15 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.function.Function;
 
 public abstract class CrudController<
         ENTIDADE extends IEntidade<PK_TYPE>,
@@ -55,6 +59,36 @@ public abstract class CrudController<
         List<ENTIDADE> modelo = service.listarTodos();
         return ResponseEntity.ok(mapper.toDTO(modelo));
     }
+    @GetMapping(path = "/page")
+    @Operation(description = "Listagem Geral paginada", responses = {
+            @ApiResponse(responseCode = "200", description = "Listagem geral",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema())),
+            @ApiResponse(responseCode = "404", description = "Registro não encontrado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Erro de Negócio",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class)))
+    })
+    public ResponseEntity<Page<DTO>> listAllPage(@PageableDefault(page = 0, size = 5)  Pageable page){
+        Page<ENTIDADE> pageEntidade = service.listarTodosPage(page);
+        return ResponseEntity.ok(mapPageEntityToDto(pageEntidade));
+    }
+
+    public Page<DTO> mapPageEntityToDto(Page<ENTIDADE> page){
+        Page<DTO> dtoPage = page.map(new Function<ENTIDADE, DTO>() {
+            @Override
+            public DTO apply(ENTIDADE entity) {
+                return mapper.toDTO(entity);
+            }
+        });
+        return dtoPage;
+    }
+
 
     @PostMapping
     @Operation(description = "Método utilizado para realizar a inclusão de um entidade", responses = {

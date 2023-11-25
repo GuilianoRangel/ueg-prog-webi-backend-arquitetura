@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -183,6 +185,11 @@ public abstract class BaseCrudService<
     @Override
     public List<ENTIDADE> listarTodos() {
         return (List<ENTIDADE>) repository.findAll();
+    }
+
+    @Override
+    public Page<ENTIDADE> listarTodosPage(Pageable page) {
+        return (Page<ENTIDADE>) repository.findAll(page);
     }
 
     @Override

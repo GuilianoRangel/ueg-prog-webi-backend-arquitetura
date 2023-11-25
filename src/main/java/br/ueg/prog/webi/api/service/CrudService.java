@@ -2,6 +2,8 @@ package br.ueg.prog.webi.api.service;
 
 import br.ueg.prog.webi.api.dto.SearchField;
 import br.ueg.prog.webi.api.dto.SearchFieldValue;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -11,6 +13,7 @@ public interface CrudService<ENTIDADE, PK_TYPE> {
     ENTIDADE excluir(PK_TYPE id);
     ENTIDADE obterPeloId(PK_TYPE id);
     List<ENTIDADE> listarTodos();
+    Page<ENTIDADE> listarTodosPage(Pageable page);
 
     /**
      * Retorna uma lista dos campos utilizáveis para busca no controlador
