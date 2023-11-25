@@ -11,4 +11,5 @@ import static java.lang.annotation.ElementType.*;
 public @interface Searchable {
     String label() default "";
     boolean listEntityValues() default false;
+    boolean autoComplete() default false;
 }

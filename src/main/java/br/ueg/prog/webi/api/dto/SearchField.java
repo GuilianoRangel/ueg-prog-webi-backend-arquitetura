@@ -29,6 +29,9 @@ public @Data class SearchField {
      */
     private String label;
 
+    @Builder.Default
+    private Boolean autoComplete = Boolean.FALSE;
+
     /**
      * Em caso de tipo de dados que tem uma lista de valores possíveis,
      * esse atributo comtém os valores permitidos

@@ -36,6 +36,7 @@ public class SearchReflection {
 
                     List<ISearchFieldData<?>> entityListAll = new ArrayList<>();
                     SearchField searchField = getSimpleSearchField(entityField, searchable);
+                    searchField.setAutoComplete(searchable.autoComplete());
                     for (Object enumConstant : entityRepository.findAll()) {
                         ISearchFieldData<?> value = (ISearchFieldData<?>) enumConstant;
                         entityListAll.add(new SearchFieldData(value));
@@ -89,6 +90,7 @@ public class SearchReflection {
                 .name(fieldName)
                 .type(entityField.getType().getSimpleName())
                 .label(fieldLabel)
+                .autoComplete(searchable.autoComplete())
                 .build();
         setSearchFieldListValues(searchField, entityField);
         return searchField;
