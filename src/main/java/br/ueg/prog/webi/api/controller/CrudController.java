@@ -206,4 +206,27 @@ public abstract class CrudController<
         return ResponseEntity.ok(mapper.toDTO(listSearchFields));
     }
 
+    @PostMapping(path = "/search-fields/page")
+    @Operation(description = "Realiza a busca pelos valores dos campos informados", responses = {
+            @ApiResponse(responseCode = "200", description = "Listagem do resultado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema())),
+            @ApiResponse(responseCode = "400", description = "falha ao realizar a busca",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Acesso negado",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MessageResponse.class)))
+    })
+    public ResponseEntity<List<DTO>> searchFieldsActionPage(
+            @RequestBody List<SearchFieldValue> searchFieldValues,
+            @PageableDefault(page = 0, size = 5)  Pageable page
+    ){
+        List<ENTIDADE> listSearchFields = service.searchFieldValues(searchFieldValues);
+        if(listSearchFields.isEmpty()){
+            throw new BusinessException(ApiMessageCode.SEARCH_FIELDS_RESULT_NONE);
+        }
+        return ResponseEntity.ok(mapper.toDTO(listSearchFields));
+    }
+
 }
