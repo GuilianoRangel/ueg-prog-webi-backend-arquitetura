@@ -22,4 +22,6 @@ public interface CrudService<ENTIDADE, PK_TYPE> {
     List<SearchField> listSearchFields();
 
     List<ENTIDADE> searchFieldValues(List<SearchFieldValue> searchFieldValues);
+
+    Page<ENTIDADE> searchFieldValuesPage(Pageable page, List<SearchFieldValue> searchFieldValues);
 }

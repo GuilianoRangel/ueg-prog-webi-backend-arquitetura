@@ -36,7 +36,6 @@ public abstract class BaseCrudService<
         REPOSITORY extends JpaRepository<ENTIDADE, PK_TYPE>
         > implements CrudService<ENTIDADE, PK_TYPE>{
     private static final Logger log = LoggerFactory.getLogger(BaseCrudService.class);
-    public static final String CONVETER_PACKAGE = "br.ueg.prog.webi.api.converters.";
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
@@ -285,7 +284,6 @@ public abstract class BaseCrudService<
         try{
             Class<?> entityClass = this.getEntityType();
 
-
             JpaRepository entityRepository = Reflexao.getEntityRepository(this.context, this.getEntityType());
             if(entityRepository instanceof  JpaSpecificationExecutor){
                 JpaSpecificationExecutor<ENTIDADE> jpaSpecificationExecutor = (JpaSpecificationExecutor<ENTIDADE>) entityRepository;
@@ -294,31 +292,36 @@ public abstract class BaseCrudService<
             }else{
                 throw new DevelopmentException("Repository not implement JpaSpecificationExecutor:"+ entityRepository.getClass().getName());
             }
-
-            /*switch (valueSearch.getType()){
-                case "Long":
-                    value = Long.valueOf(valueSearch.getValue());
-                    break;
-                case "Integer"
-            }*/
         }catch (Exception e){
             e.printStackTrace();
         }
         return new ArrayList<>();
     }
+    public Page<ENTIDADE> searchFieldValuesPage(Pageable page, List<SearchFieldValue> searchFieldValues){
+        try{
+            Class<?> entityClass = this.getEntityType();
 
+            JpaRepository entityRepository = Reflexao.getEntityRepository(this.context, this.getEntityType());
+            if(entityRepository instanceof  JpaSpecificationExecutor){
+                JpaSpecificationExecutor<ENTIDADE> jpaSpecificationExecutor = (JpaSpecificationExecutor<ENTIDADE>) entityRepository;
+                Page<ENTIDADE> all = jpaSpecificationExecutor.findAll(new SearchEntity(entityClass, searchFieldValues),page);
+                return all;
+            }else{
+                throw new DevelopmentException("Repository not implement JpaSpecificationExecutor:"+ entityRepository.getClass().getName());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        //TODO ver como retornar um pageable vazio
+        return null;
+    }
     private Object getValue(SearchFieldValue valueSearch) {
         Object value;
-        //String pacote = CONVETER_PACKAGE;
         String converterClass = valueSearch.getType().concat("Converter");
         converterClass = converterClass.substring(0,1).toLowerCase().concat(converterClass.substring(1));
-        //String conversorName = pacote.concat(converterClass);
         try {
-            //Class classConverter = Class.forName(conversorName);
-            //IConverter converter = (IConverter) classConverter.getConstructor().newInstance();
             IConverter converter = (IConverter) this.appContext.getBean(converterClass);
             value = converter.converter(valueSearch.getValue());
-        //TODO tratar classe não existe
         }catch (Exception e){
             log.info("Erro ao Convereter, ou Converter Não encontrado: "+converterClass);
             value = valueSearch.getValue();

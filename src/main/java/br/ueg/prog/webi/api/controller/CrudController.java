@@ -15,13 +15,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 public abstract class CrudController<
@@ -80,12 +84,7 @@ public abstract class CrudController<
     }
 
     public Page<DTO> mapPageEntityToDto(Page<ENTIDADE> page){
-        Page<DTO> dtoPage = page.map(new Function<ENTIDADE, DTO>() {
-            @Override
-            public DTO apply(ENTIDADE entity) {
-                return mapper.toDTO(entity);
-            }
-        });
+        Page<DTO> dtoPage = page.map(entity -> mapper.toDTO(entity));
         return dtoPage;
     }
 
@@ -218,15 +217,24 @@ public abstract class CrudController<
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = MessageResponse.class)))
     })
-    public ResponseEntity<List<DTO>> searchFieldsActionPage(
+    public ResponseEntity<Page<DTO>> searchFieldsActionPage(
             @RequestBody List<SearchFieldValue> searchFieldValues,
-            @PageableDefault(page = 0, size = 5)  Pageable page
+            @RequestParam(name = "page", defaultValue = "0", required = false)  Integer page,
+            @RequestParam(name = "size", defaultValue = "5", required = false)  Integer size,
+            @RequestParam(name = "sort", defaultValue = "", required = false)  List<String> sort
     ){
-        List<ENTIDADE> listSearchFields = service.searchFieldValues(searchFieldValues);
+        Sort sortObject = Sort.unsorted();
+        if(Objects.nonNull(sort)){
+            List<Sort.Order> orderList = new ArrayList<>();
+            sort.forEach(s -> orderList.add(Sort.Order.asc(s)));
+            sortObject = Sort.by(orderList);
+        }
+        Pageable pageable = PageRequest.of(page, size, sortObject);
+        Page<ENTIDADE> listSearchFields = service.searchFieldValuesPage(pageable, searchFieldValues);
         if(listSearchFields.isEmpty()){
             throw new BusinessException(ApiMessageCode.SEARCH_FIELDS_RESULT_NONE);
         }
-        return ResponseEntity.ok(mapper.toDTO(listSearchFields));
+        return ResponseEntity.ok(this.mapPageEntityToDto(listSearchFields));
     }
 
 }
